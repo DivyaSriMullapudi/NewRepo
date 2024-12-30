@@ -1,0 +1,174 @@
+﻿//Tables
+create table Users (
+    UserID int primary key identity(1,1),
+    [Name] varchar(100),
+    Username varchar(50) UNIQUE,
+    [Password] varchar(50),
+    MobileNumber varchar(20))
+
+create table Products (
+    ProductID int primary key identity(1,1),
+    ProductName varchar(100) NOT NULL,     
+    Price decimal(10,2) NOT NULL,           
+    Qty int NOT NULL )
+
+insert into Products (ProductName, Price, Qty)
+values('Oppo', 12000.00, 50),
+('Oneplus', 45555.00, 15),
+('Iphone15', 60000.00, 30)
+
+
+create table Cart (
+    CartID int identity(1,1) primary key,
+    ProductID int,
+    ProductName varchar(100),
+    Username varchar(50),
+    Price decimal(10, 2))
+
+create table Cart1 (
+    CartID int IDENTITY(1,1) PRIMARY KEY,
+    ProductID int,
+    ProductName varchar(100),
+    Username varchar(50),
+    Price DECIMAL(10, 2),
+    Quantity int NOT NULL,  
+    CONSTRAint FK_Product FOREIGN KEY (ProductID) REFERENCES Products(ProductID),
+    CONSTRAint FK_User FOREIGN KEY (Username) REFERENCES Users(Username))
+
+create table Orders (
+    OrderID int IDENTITY(1,1) PRIMARY KEY,
+    Username varchar(50),
+    OrderDate datetime DEFAULT GETDATE(),
+    TotalPrice decimal(18, 2), 
+    CONSTRAint FK_Order_User FOREIGN KEY (Username) REFERENCES Users(Username))
+
+create table OrderDetails (
+    OrderDetailID int IDENTITY(1,1) PRIMARY KEY,
+    OrderID int,
+    ProductID int,
+    ProductName varchar(100),
+    Quantity int,
+    Price decimal(18, 2), 
+    CONSTRAint FK_OrderDetail_Order FOREIGN KEY (OrderID) REFERENCES Orders(OrderID),
+    CONSTRAint FK_OrderDetail_Product FOREIGN KEY (ProductID) REFERENCES Products(ProductID))
+
+
+
+//Stored Procedure
+alter procedure [dbo].[UserLoginRegisterandShoppingCart3]
+    @Action varchar(50),    
+    @Username varchar(50) = NULL, 
+    @Password varchar(50) = NULL, 
+    @Name varchar(100) = NULL,    
+    @MobileNumber varchar(15) = NULL, 
+    @ProductID int = NULL,      
+    @Quantity int = NULL         
+as
+begin
+    declare @AvailableQty int;
+    declare @ProductName varchar(100), @Price DECIMAL(18, 2);
+    declare @OrderID int;
+
+    if @Action = 'Login'
+    begin
+        select * 
+        from Users 
+        where Username = @Username and [Password] = @Password;
+    end
+
+    if @Action = 'Register'
+    begin
+        if EXISTS (select 1 from Users where Username = @Username)
+        begin
+            select 0; 
+            return;
+        end
+        else
+        begin
+            insert into Users ([Name], Username, [Password], MobileNumber)
+            values (@Name, @Username, @Password, @MobileNumber);
+            select 1; 
+            return;
+        end
+    end
+
+    if @Action = 'GetProducts'
+    begin
+        select ProductID, ProductName, Price, Qty 
+        from Products
+        where Qty > 0;
+    end
+
+    if @Action = 'selectProduct'
+    begin
+        select @AvailableQty = Qty 
+        from Products 
+        where ProductID = @ProductID;
+
+        if @AvailableQty >= @Quantity
+        begin
+            update Products 
+            SET Qty = Qty - @Quantity 
+            where ProductID = @ProductID;
+            select 1 as Productselected; 
+        end
+        else
+        begin
+            select 0 as Productselected; 
+        end
+    end
+
+    if @Action = 'AddToCart'
+    begin
+        select @ProductName = ProductName, @Price = Price, @AvailableQty = Qty 
+        from Products 
+        where ProductID = @ProductID;
+
+        if @AvailableQty >= @Quantity
+        begin
+            if EXISTS (select 1 from Cart1 where ProductID = @ProductID and Username = @Username)
+            begin
+                update Cart1
+                SET Quantity = Quantity + @Quantity,  Price = Price + (@Price * @Quantity)
+                where ProductID = @ProductID and Username = @Username;
+                select 1 as Cartupdated; 
+            end
+            else
+            begin
+                insert into Cart1 (ProductID, ProductName, Username, Price, Quantity)
+                values (@ProductID, @ProductName, @Username, @Price * @Quantity, @Quantity);
+                select 1 as Cartupdated; 
+            end
+        end
+        else
+        begin
+            select 0 as Productselected;
+        end
+    end
+
+    if @Action = 'GetCart'
+    begin
+        select ProductName, SUM(Quantity) as Quantity, SUM(Price) as Price 
+        from Cart1
+        where Username = @Username
+        GROUP BY ProductName;
+    end
+
+    if @Action = 'PlaceOrder'
+    begin
+        insert into Orders (Username, OrderDate, TotalPrice)
+        values (@Username, GETDATE(), 
+                (select SUM(Price) from Cart1 where Username = @Username));
+
+        SET @OrderID = (select TOP 1 OrderID from Orders where Username = @Username ORDER BY OrderDate DESC);
+
+        insert into OrderDetails (OrderID, ProductID, ProductName, Quantity, Price)
+        select @OrderID, ProductID, ProductName, Quantity, Price 
+        from Cart1 
+        where Username = @Username;
+
+        delete from Cart1 where Username = @Username;
+
+        select @OrderID as OrderPlaced; 
+    end
+end;

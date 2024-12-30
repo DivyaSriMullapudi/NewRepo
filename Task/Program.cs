@@ -11,13 +11,13 @@ namespace Task
         {
             ShoppingCart shoppingCart = new ShoppingCart();
 
-        credentials:
+            credentials:
             Console.WriteLine("Do you have credentials to Login? (Yes/No): ");
             string credentials = Console.ReadLine();
 
             if (credentials.Equals("Yes", StringComparison.OrdinalIgnoreCase))
             {
-            login:
+                login:
                 Console.Write("Enter Username: ");
                 string username = Console.ReadLine();
                 Console.Write("Enter Password: ");
@@ -37,7 +37,7 @@ namespace Task
             }
             else if (credentials.Equals("No", StringComparison.OrdinalIgnoreCase))
             {
-            register:
+                register:
                 Console.Write("Enter Name: ");
                 string name = Console.ReadLine();
                 Console.Write("Enter Username: ");
@@ -173,29 +173,21 @@ namespace Task
                         else if (placeOrder.Equals("No", StringComparison.OrdinalIgnoreCase))
                         {
                             Console.WriteLine("You have opted not to place an order.");
+                            return;
                         }
                         else
                         {
                             Console.WriteLine("Invalid input. Please enter 'Yes' or 'No'.");
-                            continue;
                         }
-                        break;
                     }
                     else
                     {
                         Console.WriteLine("Invalid input. Please enter 'Yes' or 'No'.");
                     }
                 }
-
-                Console.WriteLine("\nDo you want to continue shopping or exit?");
-                string continueShopping = Console.ReadLine();
-                if (continueShopping.Equals("No", StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine("Thank you for shopping with us!");
-                    break;
-                }
             }
         }
+
 
 
         private bool SelectProduct(int productId, int quantity)
