@@ -7,6 +7,7 @@ namespace Task
 {
     class Program
     {
+        //jlkgkb.
         static void Main(string[] args)
         {
             ShoppingCart shoppingCart = new ShoppingCart();
